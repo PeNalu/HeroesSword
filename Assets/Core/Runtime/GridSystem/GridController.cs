@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class GridController : MonoBehaviour
+public class GridController : Singleton<GridController>
 {
     [SerializeField]
     private Grid grid;
@@ -69,7 +69,7 @@ public class GridController : MonoBehaviour
         return gridEntity.GetTileType() == GridObject.TileType.Floor ? floorData : entityData;
     }
 
-    public List<GridTile> Searching(GridTile startTile, int depth)
+    public List<GridTile> SearchingWalkable(GridTile startTile, int depth)
     {
         startTile.D = 0;
         List<GridTile> toSearch = new List<GridTile>() { startTile };
@@ -89,6 +89,39 @@ public class GridController : MonoBehaviour
                     if (!neighbor.IsWolkable()) continue;
                     if (!entityData.IsEmpty(neighbor.GetGridPosition())) continue;
 
+                    bool inSearch = toSearch.Contains(neighbor);
+
+                    if (!inSearch)
+                    {
+                        neighbor.D = current.D + 1;
+                        neighbor.SetConnect(current);
+                        toSearch.Add(neighbor);
+                    }
+                }
+            }
+        }
+
+        processed.Remove(startTile);
+        return processed;
+    }
+
+    public List<GridTile> SearchingAll(GridTile startTile, int depth)
+    {
+        startTile.D = 0;
+        List<GridTile> toSearch = new List<GridTile>() { startTile };
+        List<GridTile> processed = new List<GridTile>();
+
+        while (toSearch.Count > 0)
+        {
+            GridTile current = toSearch[0];
+
+            processed.Add(current);
+            toSearch.Remove(current);
+
+            if (current.D != depth)
+            {
+                foreach (GridTile neighbor in current.GetNeighbors().Where(t => !processed.Contains(t)))
+                {
                     bool inSearch = toSearch.Contains(neighbor);
 
                     if (!inSearch)

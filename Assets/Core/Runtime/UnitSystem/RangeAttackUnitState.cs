@@ -1,10 +1,10 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using static GameManager;
 
-public class RangeAttackUnitState : IUnitState
+[CreateAssetMenu(menuName = "Unit States/Range Attack State", fileName = "Range Attack State")]
+public class RangeAttackUnitState : ScriptableUnitState
 {
     private GridData floorData;
     private GridData entityData;
@@ -13,12 +13,11 @@ public class RangeAttackUnitState : IUnitState
     private Grid grid;
 
     private List<GridTile> validTiles;
-    private List<GridTile> invalidTiles;
 
     private Vector3Int startPosition;
     private GameManager gameManager;
 
-    public RangeAttackUnitState(GridController gridController, UnitController unitController)
+    public override void Initialize(GridController gridController, UnitController unitController)
     {
         this.floorData = gridController.GetFloorData();
         this.entityData = gridController.GetEntityData();
@@ -32,10 +31,10 @@ public class RangeAttackUnitState : IUnitState
         startPosition.z = 0;
     }
 
-    public void OnAction(Vector3Int gridPosition, Vector3 position)
+    protected override void ActionState(Vector3Int gridPosition, Vector3 position)
     {
         GridTile gridTile = floorData.GetGridObject(gridPosition) as GridTile;
-        if (validTiles.Contains(gridTile) && !entityData.IsEmpty(gridPosition))
+        if (validTiles.Contains(gridTile)) // && !entityData.IsEmpty(gridPosition)
         {
             GridObject gridObject = entityData.GetGridObject(gridPosition);
             IHealth health = gridObject.GetComponent<IHealth>();
@@ -47,7 +46,7 @@ public class RangeAttackUnitState : IUnitState
         }
     }
 
-    public void OnEnd()
+    protected override void EndState()
     {
         for (int i = 0; i < validTiles.Count; i++)
         {
@@ -56,26 +55,27 @@ public class RangeAttackUnitState : IUnitState
         validTiles.Clear();
     }
 
-    public void OnEntry()
+    protected override void EntryState()
     {
         List<Vector3Int> enemyUnits = gameManager.GetUnitsByTeam(GetEnemyTeam()).Select(x => x.GetGridEntity().GetGridPosition()).ToList();
+        GridTile startTile = floorData.GetGridObject(startPosition) as GridTile;
+        List<Vector3Int> blockTile = gridController.SearchingAll(startTile, 1).Select(x => x.GetGridPosition()).ToList();
 
         for (int i = 0; i < enemyUnits.Count; i++)
         {
             Vector3Int pos = enemyUnits[i];
             pos.z = 0;
             GridTile tile = floorData.GetGridObject(pos) as GridTile;
-            tile.Highlight(true, Color.green);
-            validTiles.Add(tile);
+
+            if(!blockTile.Contains(pos))
+            {
+                tile.Highlight(true, Color.green);
+                validTiles.Add(tile);
+            }
         }
     }
 
-    public void OnUpdate(Vector3Int gridPosition, Vector3 position)
-    {
-        
-    }
-
-    public event System.Action OnEndAction;
+    public override event System.Action OnEndAction;
 
     private Team GetEnemyTeam()
     {

@@ -1,10 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using UnityEngine.Tilemaps;
 
-public class MovementUnitState : IUnitState
+[CreateAssetMenu(menuName = "Unit States/Movement State", fileName = "Movement State")]
+public class MovementUnitState : ScriptableUnitState
 {
     private GridData floorData;
     private GridData entityData;
@@ -15,7 +13,7 @@ public class MovementUnitState : IUnitState
     private Dictionary<Vector3Int, GridTile> validTiles;
     private Vector3Int startPosition;
 
-    public MovementUnitState(GridController gridController, UnitController unitController)
+    public override void Initialize(GridController gridController, UnitController unitController)
     {
         this.floorData = gridController.GetFloorData();
         this.entityData = gridController.GetEntityData();
@@ -28,7 +26,7 @@ public class MovementUnitState : IUnitState
         startPosition.z = 0;
     }
 
-    public void OnEnd()
+    protected override void EndState()
     {
         foreach (GridTile tile in validTiles.Values)
         {
@@ -37,7 +35,7 @@ public class MovementUnitState : IUnitState
         validTiles.Clear();
     }
 
-    public void OnEntry()
+    protected override void EntryState()
     {
         CalculateMovementArea();
         foreach (GridTile tile in validTiles.Values)
@@ -46,7 +44,7 @@ public class MovementUnitState : IUnitState
         }
     }
 
-    public void OnAction(Vector3Int gridPosition, Vector3 position)
+    protected override void ActionState(Vector3Int gridPosition, Vector3 position)
     {
         if (validTiles.ContainsKey(gridPosition))
         {
@@ -58,7 +56,6 @@ public class MovementUnitState : IUnitState
             {
                 GridTile tile = floorData.GetGridObject(unitController.GetGridEntity().GetGridPosition()) as GridTile;
                 tile.IsWolkable(true);
-                Debug.Log("Move");
             }
 
             unitController.SpendMovementPoint((int)gridTile.D);
@@ -67,17 +64,12 @@ public class MovementUnitState : IUnitState
         }
     }
 
-    public void OnUpdate(Vector3Int gridPosition, Vector3 position)
-    {
-        
-    }
-
-    public event System.Action OnEndAction;
+    public override event System.Action OnEndAction;
 
     private void CalculateMovementArea()
     {
         GridTile gridTile = floorData.GetGridObject(startPosition) as GridTile;
-        List<GridTile> tiles = gridController.Searching(gridTile, unitController.GetMovementPoint());
+        List<GridTile> tiles = gridController.SearchingWalkable(gridTile, unitController.GetMovementPoint());
         for (int i = 0; i < tiles.Count; i++)
         {
             GridTile tile = tiles[i];

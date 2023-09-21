@@ -1,26 +1,19 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Tilemaps;
 
-public class BaseUnitState : IUnitState
+[CreateAssetMenu(menuName = "Unit States/Base State", fileName = "Base State")]
+public class BaseUnitState : ScriptableUnitState
 {
     private GridData floorData;
-    private GridData entityData;
-    private GridController gridController;
-    private UnitController unitController;
     private CellSelector cellSelector;  
     private Grid grid;
 
     private List<GridTile> validTiles;
     private Vector3Int startPosition;
 
-    public BaseUnitState(GridController gridController, UnitController unitController)
+    public override void Initialize(GridController gridController, UnitController unitController) 
     {
         this.floorData = gridController.GetFloorData();
-        this.entityData = gridController.GetEntityData();
-        this.gridController = gridController;
-        this.unitController = unitController;
         this.grid = gridController.GetGrid();
         this.cellSelector = gridController.GetCellSelector();
 
@@ -29,20 +22,7 @@ public class BaseUnitState : IUnitState
         startPosition.z = 0;
     }
 
-    public void OnEnd()
-    {
-        cellSelector.Hide();
-    }
-
-    public void OnEntry()
-    {
-    }
-
-    public void OnAction(Vector3Int gridPosition, Vector3 position)
-    {
-    }
-
-    public void OnUpdate(Vector3Int gridPosition, Vector3 position)
+    protected override void UpdateState(Vector3Int gridPosition, Vector3 position)
     {
         if (!floorData.IsEmpty(gridPosition))
         {
@@ -53,6 +33,4 @@ public class BaseUnitState : IUnitState
             cellSelector.Hide();
         }
     }
-
-    public event System.Action OnEndAction;
 }

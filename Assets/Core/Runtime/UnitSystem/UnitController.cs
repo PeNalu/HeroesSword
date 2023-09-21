@@ -19,6 +19,9 @@ public class UnitController : StackHealth
     private ScriptableUnitState baseState;
 
     [SerializeField]
+    private SpriteRenderer teamIndicator;
+
+    [SerializeField]
     private Team currentTeam;
 
     [SerializeField]
@@ -36,12 +39,20 @@ public class UnitController : StackHealth
     [SerializeField]
     private int movementPoint;
 
+    [SerializeField]
+    [Range(0, 1)]
+    private float doubleStepChance = 0f;
+
+    [SerializeField]
+    [TextArea]
+    private string description;
+
     //Stored required components.
     private GridEntity gridEntity;
     private InputManager inputManager;
 
     //Stored required properties.
-    private IUnitState state;
+    //private IUnitState state;
     private ScriptableUnitState currentState;
     private bool isActive = false;
     private int startMovementPoint;
@@ -68,9 +79,9 @@ public class UnitController : StackHealth
 
     private void Update()
     {
-        if(state != null)
+        if(currentState != null)
         {
-            state.OnUpdate(inputManager.GetCurrentGridPosition(), inputManager.GetCurrentPosition());
+            currentState.OnUpdate(inputManager.GetCurrentGridPosition(), inputManager.GetCurrentPosition());
         }
 
         if(movementPoint < previousMovePoint)
@@ -84,59 +95,53 @@ public class UnitController : StackHealth
         }
     }
 
+    public void Initialize(float minDamage, float maxDamage, int movePoint, int initiative, float health, Team team)
+    {
+        this.minDamage = minDamage;
+        this.maxDamage = maxDamage;
+        this.movementPoint = movePoint;
+        this.initiative = initiative;
+        SetTeam(team);
+        SetHealth(health);
+
+        startMovementPoint = movementPoint;
+        previousMovePoint = startMovementPoint;
+        inputManager = InputManager.GetRuntimeInstance();
+        gridEntity = GetComponent<GridEntity>();
+    }
+
     public void OnAction()
     {
-        if (state == null) return;
-        state.OnAction(inputManager.GetCurrentGridPosition(), inputManager.GetCurrentPosition());
+        if (currentState == null) return;
+        currentState.OnAction(inputManager.GetCurrentGridPosition(), inputManager.GetCurrentPosition());
     }
 
     public void OnExit()
     {
-        if(state != null)
+        if (currentState != null)
         {
-            state.OnEnd();
-        } 
+            currentState.OnEnd();
+            currentState.OnEndAction -= OnExit;
+        }
 
-        state = new BaseUnitState(gridEntity.GetGridController(), this);
+        currentState = Instantiate(baseState);
+        currentState.Initialize(gridEntity.GetGridController(), this);
+        currentState.OnEndAction += OnExit;
     }
 
     public void EntryState(string stateName)
     {
+        if(currentState != null)
+        {
+            currentState.OnEnd();
+            currentState.OnEndAction -= OnExit;
+        }
+
         ScriptableUnitState templater = statesPair[stateName];
         currentState = Instantiate(templater);
-    }
-
-    public void EntryMovementState()
-    {
-        if (state != null)
-        {
-            state.OnEnd();
-        }
-
-        state = new MovementUnitState(gridEntity.GetGridController(), this);
-        state.OnEndAction += OnExit;
-        state.OnEntry();
-    }
-
-    public void EntryBaseAttackState()
-    {
-        if (state != null)
-        {
-            state.OnEnd();
-        }
-
-        switch (type)
-        {
-            case UnitType.Range:
-                state = new RangeAttackUnitState(gridEntity.GetGridController(), this);
-                break;
-            case UnitType.Melee:
-                state = new MeleeAttackUnitState(gridEntity.GetGridController(), this);
-                break;
-        }
-
-        state.OnEndAction += OnExit;
-        state.OnEntry();
+        currentState.Initialize(gridEntity.GetGridController(), this);
+        currentState.OnEntry();
+        currentState.OnEndAction += OnExit;
     }
 
     public void ResetUnit()
@@ -147,9 +152,25 @@ public class UnitController : StackHealth
 
     #region [Event Action Callback]
     public event Action OnMove;
+    public event Action<UnitController> OnChangeTeam;
     #endregion
 
     #region [Getter / Setter]
+    public string GetDescription()
+    {
+        return description;
+    }
+
+    public float GetDoubleStepChance()
+    {
+        return doubleStepChance;
+    }
+
+    public List<ScriptableUnitState> GetUnitStates()
+    {
+        return states;
+    }
+
     public bool CanAttack()
     {
         return canAttack;
@@ -204,6 +225,39 @@ public class UnitController : StackHealth
     public void SetTeam(Team team)
     {
         currentTeam = team;
+
+        switch (team)
+        {
+            case Team.Red:
+                teamIndicator.color = Color.red;
+                break;
+            case Team.Blue:
+                teamIndicator.color = Color.blue;
+                break;
+        }
+
+        OnChangeTeam?.Invoke(this);
+    }
+
+    private int temporaryTurn = -1;
+    private Team startTeam;
+    public void TemporarySetTeam(Team team, int turnCount)
+    {
+        startTeam = currentTeam;
+        temporaryTurn = turnCount;
+        SetTeam(team);
+    }
+
+    public void OnEndTurn()
+    {
+        if(temporaryTurn != -1)
+        {
+            temporaryTurn--;
+            if(temporaryTurn == 0)
+            {
+                SetTeam(startTeam);
+            }
+        }
     }
 
     public void SetActive(bool value)

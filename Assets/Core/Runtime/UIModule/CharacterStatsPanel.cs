@@ -12,6 +12,9 @@ public class CharacterStatsPanel : MonoBehaviour
     [SerializeField]
     private Text movePointField;
 
+    [SerializeField]
+    private Text descriptionField;
+
     //Stored required components.
     private UnitController controller;
 
@@ -29,6 +32,7 @@ public class CharacterStatsPanel : MonoBehaviour
         nameField.text = $"<color={color}>{controller.gameObject.name}</color>";
         damageField.text = $"Damage: <color=red>{controller.GetMinDamage()} - {controller.GetMaxDamage()}</color>";
         movePointField.text = $"Move Point: <color=green>{controller.GetMovementPoint()}</color>";
+        descriptionField.text = $"{controller.GetDescription()}";
     }
 
     public void SetCharacter(UnitController unitController)

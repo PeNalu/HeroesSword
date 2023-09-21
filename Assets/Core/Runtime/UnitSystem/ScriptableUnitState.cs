@@ -6,6 +6,9 @@ public class ScriptableUnitState : ScriptableObject, IUnitState
     [SerializeField]
     private string stateName;
 
+    [SerializeField]
+    private UnitStateSlot template;
+
     public virtual void Initialize(GridController gridController, UnitController unitController) { }
 
     public void OnAction(Vector3Int gridPosition, Vector3 position)
@@ -36,12 +39,17 @@ public class ScriptableUnitState : ScriptableObject, IUnitState
 
     protected virtual void UpdateState(Vector3Int gridPosition, Vector3 position) { }
 
-    public event Action OnEndAction;
+    public virtual event Action OnEndAction;
 
     #region [Getter / Setter]
     public string GetStateName()
     {
         return stateName;
+    }
+
+    public UnitStateSlot GetSlotTemplate()
+    {
+        return template;
     }
     #endregion
 }

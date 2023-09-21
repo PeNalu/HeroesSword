@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 321640f98cdb5474e9bddb6127d9d8cd, type: 3}
+  m_Name: Range Attack State
+  m_EditorClassIdentifier: 
+  stateName: Range Attack
+  template: {fileID: 8143931523516974615, guid: 798246d037b37c84cb77e2a258dfe184, type: 3}

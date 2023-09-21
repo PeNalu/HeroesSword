@@ -17,7 +17,13 @@ public class GameManager : Singleton<GameManager>
     private CharacterStatsPanel statsPanel;
 
     [SerializeField]
+    private UnitStatesPanel unitStatesPanel;
+
+    [SerializeField]
     private GridData floorData;
+
+    [SerializeField]
+    private GridData entityData;
 
     [SerializeField]
     private WinPanel winPanel;
@@ -31,12 +37,14 @@ public class GameManager : Singleton<GameManager>
     //Stored required properties.
     private List<UnitController> allUnits;
     private UnitController currentActiveUnit;
+    private GridController gridController;
     private InputManager inputManager;
     private GridTile selectedTile;
     private int unitIndex = 0;
 
     private void Awake()
     {
+        gridController = GridController.GetRuntimeInstance();
         inputManager = InputManager.GetRuntimeInstance();
         inputManager.OnClick += OnClick;
         inputManager.OnExit += OnExit;
@@ -50,6 +58,7 @@ public class GameManager : Singleton<GameManager>
         for (int i = 0; i < allUnits.Count; i++)
         {
             allUnits[i].OnDeath += OnDeath;
+            allUnits[i].OnChangeTeam += OnChangeTeam;
         }
 
         OrderUnits();
@@ -60,6 +69,7 @@ public class GameManager : Singleton<GameManager>
         currentActiveUnit = allUnits[0];
         statsPanel.SetCharacter(currentActiveUnit);
         currentActiveUnit.OnMove += HighlightSelected;
+        unitStatesPanel.Initialize(currentActiveUnit);
         HighlightSelected();
     }
 
@@ -68,14 +78,25 @@ public class GameManager : Singleton<GameManager>
         CheckWinner();
     }
 
-    public void EntryMovementState()
+    public void ChoiceState(string stateName)
     {
-        currentActiveUnit.EntryMovementState();
+        currentActiveUnit.EntryState(stateName);
     }
 
-    public void EntryBaseAttackState()
+    public void SpawnUnit(UnitController unitController, Vector3Int gridPosition)
     {
-        currentActiveUnit.EntryBaseAttackState();
+        if(unitController.GetTeam() == Team.Blue)
+        {
+            blueTeam.Add(unitController);
+        }
+        else
+        {
+            redTeam.Add(unitController);
+        }
+        allUnits.Add(unitController);
+        unitController.OnDeath += OnDeath;
+        unitController.OnChangeTeam += OnChangeTeam;
+        OrderUnits();
     }
 
     private void OnClick()
@@ -103,6 +124,20 @@ public class GameManager : Singleton<GameManager>
         }
     }
 
+    private void OnChangeTeam(UnitController unitController)
+    {
+        if(unitController.GetTeam() == Team.Red)
+        {
+            blueTeam.Remove(unitController);
+            redTeam.Add(unitController);
+        }
+        else
+        {
+            redTeam.Remove(unitController);
+            blueTeam.Add(unitController);
+        }
+    }
+
     private void OnDeath(StackHealth stackHealth)
     {
         UnitController controller = stackHealth as UnitController;
@@ -116,25 +151,49 @@ public class GameManager : Singleton<GameManager>
             {
                 redTeam.Remove(controller);
             }
+
             allUnits.Remove(controller);
+
+            if (currentActiveUnit == controller)
+            {
+                EndTurn();
+            }
+
+            OrderUnits();
             Destroy(controller.gameObject);
         }
     }
 
     public void EndTurn()
     {
+        if(currentActiveUnit.GetDoubleStepChance() != 0)
+        {
+            float value = UnityEngine.Random.Range(0f, 1f);
+            if(value < currentActiveUnit.GetDoubleStepChance())
+            {
+                string color = currentActiveUnit.GetTeam() == Team.Red ? "red" : "blue";
+                Logger.GetRuntimeInstance().Log($"<color={color}>{currentActiveUnit.gameObject.name}</color> makes a repeat move!");
+                currentActiveUnit.OnExit();
+                currentActiveUnit.ResetUnit();
+                return;
+            }
+        }
+
         unitIndex++;
         if (unitIndex > allUnits.Count - 1)
         {
             unitIndex = 0;
-            ResetUnits();
         }
 
+        unitStatesPanel.Clear();
         currentActiveUnit.OnExit();
         currentActiveUnit.OnMove -= HighlightSelected;
+        currentActiveUnit.ResetUnit();
+        currentActiveUnit.OnEndTurn();
         currentActiveUnit = allUnits[unitIndex];
         statsPanel.SetCharacter(currentActiveUnit);
         currentActiveUnit.OnMove += HighlightSelected;
+        unitStatesPanel.Initialize(currentActiveUnit);
         HighlightSelected();
     }
 
@@ -161,7 +220,7 @@ public class GameManager : Singleton<GameManager>
 
     private void OrderUnits()
     {
-        allUnits.OrderBy(x => x.GetInitiative());
+        allUnits = allUnits.OrderBy(x => x.GetInitiative()).ToList();
         allUnits.Reverse();
     }
 

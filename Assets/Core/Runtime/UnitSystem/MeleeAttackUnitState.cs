@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-using Unity.VisualScripting;
 using UnityEngine;
 using static GameManager;
 
-public class MeleeAttackUnitState : IUnitState
+[CreateAssetMenu(menuName = "Unit States/Melee Attack State", fileName = "Melee Attack State")]
+public class MeleeAttackUnitState : ScriptableUnitState
 {
     private GridData floorData;
     private GridData entityData;
@@ -16,7 +16,7 @@ public class MeleeAttackUnitState : IUnitState
     private Vector3Int startPosition;
     private GameManager gameManager;
 
-    public MeleeAttackUnitState(GridController gridController, UnitController unitController)
+    public override void Initialize(GridController gridController, UnitController unitController)
     {
         this.floorData = gridController.GetFloorData();
         this.entityData = gridController.GetEntityData();
@@ -30,7 +30,7 @@ public class MeleeAttackUnitState : IUnitState
         startPosition.z = 0;
     }
 
-    public void OnEnd()
+    protected override void EndState()
     {
         for (int i = 0; i < validTiles.Count; i++)
         {
@@ -39,10 +39,10 @@ public class MeleeAttackUnitState : IUnitState
         validTiles.Clear();
     }
 
-    public void OnEntry()
+    protected override void EntryState()
     {
         GridTile gridTile = floorData.GetGridObject(startPosition) as GridTile;
-        List<GridTile> allTiles = gridController.Searching(gridTile, 1);
+        List<GridTile> allTiles = gridController.SearchingAll(gridTile, 1);
         List<Vector3Int> enemyUnits = gameManager.GetUnitsByTeam(GetEnemyTeam()).Select(x => x.GetGridEntity().GetGridPosition()).ToList();
 
         for (int i = 0;i < allTiles.Count;i++)
@@ -50,17 +50,17 @@ public class MeleeAttackUnitState : IUnitState
             GridTile tile = allTiles[i];
             if (enemyUnits.Contains(tile.GetGridPosition()))
             {
-                tile.Highlight(true, Color.green);
+                tile.Highlight(true, new Color(0f, 1f, 0f, 0.5f));
             }
             else
             {
-                tile.Highlight(true, Color.red);
+                tile.Highlight(true, new Color(1f, 0f, 0f, 0.5f));
             }
             validTiles.Add(tile);
         }
     }
 
-    public void OnAction(Vector3Int gridPosition, Vector3 position)
+    protected override void ActionState(Vector3Int gridPosition, Vector3 position)
     {
         if (entityData.TryGetGridEntity(gridPosition, out GridObject gridEntity))
         {
@@ -76,12 +76,7 @@ public class MeleeAttackUnitState : IUnitState
         }
     }
 
-    public void OnUpdate(Vector3Int gridPosition, Vector3 position)
-    {
-        
-    }
-
-    public event System.Action OnEndAction;
+    public override event System.Action OnEndAction;
 
     private Team GetEnemyTeam()
     {

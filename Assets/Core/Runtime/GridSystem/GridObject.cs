@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class GridObject : MonoBehaviour
@@ -11,9 +9,6 @@ public class GridObject : MonoBehaviour
     }
 
     [SerializeField]
-    private GridController gridController;
-
-    [SerializeField]
     private TextMesh cellPositionField;
 
     [SerializeField]
@@ -21,9 +16,11 @@ public class GridObject : MonoBehaviour
 
     //Stored required properties.
     private Vector3Int gridPosition;
+    private GridController gridController;
 
     private void Awake()
     {
+        gridController = GridController.GetRuntimeInstance(); 
         gridController.TryOccupied(transform.position, this);
     }
 

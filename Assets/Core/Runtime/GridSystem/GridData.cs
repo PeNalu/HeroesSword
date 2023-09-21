@@ -23,6 +23,11 @@ public class GridData : ScriptableObject
         return false;
     }
 
+    public bool ContainsPosition(Vector3Int gridPosition)
+    {
+        return cells.ContainsKey(gridPosition);
+    }
+
     public void ClearOccupiedCell(Vector3Int gridPosition)
     {
         if (cells.ContainsKey(gridPosition))
