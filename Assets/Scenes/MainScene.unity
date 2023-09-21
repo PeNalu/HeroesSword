@@ -17532,7 +17532,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   stackCount: 1
-  health: 1000
+  health: 3000
   damageFilters: []
   groupDeadEvents: []
   deadEvents: []
